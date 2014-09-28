@@ -46,8 +46,14 @@ def can_proceed?(remaining_space)
   return success
 end
 
+def get_display_time(time)
+  return time.localtime
+end
+
 def thread_func
   begin
+  start_time = Time.new
+  puts "Starting timelapse: #{get_display_time(start_time)}"
     while $timelapse_started
       remaining_space = get_remaining_space
       if !can_proceed?(remaining_space)
@@ -62,7 +68,8 @@ def thread_func
   rescue
     puts "An error has occured...", $!, $@
   end
-  puts "timelapse stopped!"
+  end_time = Time.new
+  puts "timelapse stopped at #{get_display_time(end_time)}."
 end
 
 def start_timelapse
