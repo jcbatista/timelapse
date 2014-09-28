@@ -57,7 +57,7 @@ def thread_func
     while $timelapse_started
       remaining_space = get_remaining_space
       if !can_proceed?(remaining_space)
-        stop_timelaspe
+        stop_timelapse
         return
       end
       #puts "$filename_template=#{$filename_template}"
