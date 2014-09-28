@@ -40,7 +40,7 @@ end
 def can_proceed?(remaining_space)
   success = true
   if remaining_space < 10
-    put "running out of disk space..."
+    puts "running out of disk space..."
     success = false
   end 
   return success
@@ -70,7 +70,7 @@ def start_timelapse
   puts "starting timelapse intervall=#{$wait_time} secs for a max of #{$max_running_length} hours..."    
   date = Time.now.strftime("%Y%d%m")
   random = [*0..100].sample
-  $filename_template = "./#{$save_dir}/f_r#{random}_#{date}"         
+  $filename_template = "./#{$save_dir}/f#{random}_#{date}"         
   filename = "#{$filename_template}_%04d.jpg"
   wait_time_ms = $wait_time * 1000
   max_length = $max_running_length * 60 * 60 * 1000
