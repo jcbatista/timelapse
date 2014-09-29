@@ -95,6 +95,18 @@ def stop_timelapse
     `sudo pkill raspistill`
 end
 
+# properly shutdown the Pi
+def shutdown
+  stop_timelapse
+  exec("sudo halt")
+end
+
+after :pin => 18, :goes => :high do
+  $semaphore.synchronize {
+    shutdown 
+  }
+end
+
 #watch :pin => 17 do
 after :pin => 17, :goes => :high do
   puts "Pin changed from #{last_value} to #{value}"
