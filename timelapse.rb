@@ -6,7 +6,7 @@ include PiPiper
 
 # quick and dirty implementation of using push buttons to preview a timelaps
 # on the Raspberry Pi using the Pi Camera and an LCD touch pannel 
-# commands are taken using the raspberry pi
+# commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
 
 $semaphore = Mutex.new
 $timelapse_started = false
