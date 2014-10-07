@@ -11,12 +11,13 @@ include PiPiper
 $semaphore = Mutex.new
 $timelapse_started = false
 $wait_time = 1 # in seconds
-$save_dir = "pics"
+$save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
+$save_dir = "#{$save_drive}pics"
 $filename_template = nil
 $max_running_length = 8 # in hours 
 
 def get_remaining_space
-  stat = Sys::Filesystem.stat("/")
+  stat = Sys::Filesystem.stat("#{$save_drive}")
   mb_available = stat.block_size * stat.blocks_available / 1024 / 1024
   return mb_available
 end
@@ -77,7 +78,7 @@ def start_timelapse
   puts "starting timelapse intervall=#{$wait_time} secs for a max of #{$max_running_length} hours..."    
   date = Time.now.strftime("%Y%d%m")
   random = [*0..100].sample
-  $filename_template = "./#{$save_dir}/f#{random}_#{date}"         
+  $filename_template = "#{$save_dir}/f#{random}_#{date}"         
   filename = "#{$filename_template}_%04d.jpg"
   wait_time_ms = $wait_time * 1000
   max_length = $max_running_length * 60 * 60 * 1000
@@ -98,7 +99,7 @@ end
 # properly shutdown the Pi
 def shutdown
   stop_timelapse
-  exec("sudo halt")
+  exec("sudo halt -p")
 end
 
 after :pin => 18, :goes => :high do
@@ -120,5 +121,5 @@ after :pin => 17, :goes => :high do
   }
 end
 
-puts "Timelapse thingy started ..."
+puts "Timelapse thingy started, saving files to #{$save_dir}"
 PiPiper.wait
