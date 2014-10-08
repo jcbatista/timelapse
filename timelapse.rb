@@ -2,19 +2,40 @@
 require 'sys/filesystem'
 require 'thread'
 require 'pi_piper'
+require 'chronic'
 include PiPiper
 
-# quick and dirty implementation of using push buttons to preview a timelaps
+# quick and dirty implementation of using push buttons to preview/start a timelapse
 # on the Raspberry Pi using the Pi Camera and an LCD touch pannel 
 # commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
-
+#
+# start date as an UTC + 4 for eastern time
+$start_date = 'tomorrow 11:00am' # if set, the timelapse will start at this given date/time
 $semaphore = Mutex.new
 $timelapse_started = false
-$wait_time = 1 # in seconds
+$wait_time = 3 #1 # in seconds
 $save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
 $save_dir = "#{$save_drive}pics"
 $filename_template = nil
 $max_running_length = 8 # in hours 
+
+def wait_for_start_date
+  return if $start_date.to_s == '' 
+
+  target_time  = Chronic.parse($start_date)
+  current_time = Time.now
+  time_diff = (target_time - current_time).to_i
+
+  if time_diff > 0
+    wait_thread = Thread.new { 
+      puts "Starting timelapse at #{target_time}, waiting #{time_diff} seconds..."
+      sleep time_diff
+      start_timelapse
+    }
+  else 
+    puts "Invalid Date/Time..."
+  end
+end
 
 def get_remaining_space
   stat = Sys::Filesystem.stat("#{$save_drive}")
@@ -122,4 +143,5 @@ after :pin => 17, :goes => :high do
 end
 
 puts "Timelapse thingy started, saving files to #{$save_dir}"
+wait_for_start_date
 PiPiper.wait
