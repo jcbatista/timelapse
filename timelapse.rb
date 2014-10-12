@@ -10,14 +10,14 @@ include PiPiper
 # commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
 #
 # start date as an UTC + 4 for eastern time
-$start_date = 'tomorrow 11:00am' # if set, the timelapse will start at this given date/time
+$start_date = nil #'tomorrow 11:00am' # if set, the timelapse will start at this given date/time
 $semaphore = Mutex.new
 $timelapse_started = false
-$wait_time = 3 #1 # in seconds
+$timelapse_interval = 3 #1 # interval between pictures (in seconds) 
 $save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
 $save_dir = "#{$save_drive}pics"
 $filename_template = nil
-$max_running_length = 8 # in hours 
+$max_running_length = 3 #0.016 # in hours 
 
 def wait_for_start_date
   return if $start_date.to_s == '' 
@@ -82,10 +82,16 @@ def thread_func
         stop_timelapse
         return
       end
-      #puts "$filename_template=#{$filename_template}"
+
       files = Dir.glob("#{$filename_template}*")
       puts "image count=#{files.length} remaining space=#{remaining_space}mb"
-      sleep $wait_time + 0.01
+      sleep $timelapse_interval + 0.01
+
+      # make sure the raspistill process is still running
+      if `pgrep raspistill`.to_s == '' 
+        puts 'timelapse no longer running...'
+        $timelapse_started = false
+      end
     end
   rescue
     puts "An error has occured...", $!, $@
@@ -96,17 +102,17 @@ end
 
 def start_timelapse
   $timelapse_started = true
-  puts "starting timelapse intervall=#{$wait_time} secs for a max of #{$max_running_length} hours..."    
+  puts "starting timelapse intervall=#{$timelapse_interval} secs for a max of #{$max_running_length} hours..."    
   date = Time.now.strftime("%Y%d%m")
   random = [*0..100].sample
   $filename_template = "#{$save_dir}/f#{random}_#{date}"         
   filename = "#{$filename_template}_%04d.jpg"
-  wait_time_ms = $wait_time * 1000
+  wait_time_ms = $timelapse_interval * 1000
   max_length = $max_running_length * 60 * 60 * 1000
-  command = "raspistill -t #{max_length} -tl #{wait_time_ms} -w 1920 -h 1080 -n -o #{filename}"
+  command = "raspistill -t #{max_length.floor} -tl #{wait_time_ms} -w 1920 -h 1080 -n -o #{filename}"
   puts "Running '#{command}'..."
   fork do
-    `#{command}`
+    puts `#{command}`
   end
   timelapse_thread = Thread.new { thread_func }
 end
