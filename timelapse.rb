@@ -10,14 +10,14 @@ include PiPiper
 # commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
 #
 # start date as an UTC + 4 for eastern time
-$start_date = nil #'tomorrow 11:00am' # if set, the timelapse will start at this given date/time
+$start_date = 'tomorrow 11:00am' # if set, the timelapse will start at this given date/time
 $semaphore = Mutex.new
 $timelapse_started = false
 $timelapse_interval = 3 #1 # interval between pictures (in seconds) 
 $save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
 $save_dir = "#{$save_drive}pics"
 $filename_template = nil
-$max_running_length = 3 #0.016 # in hours 
+$max_running_length = 4 #0.016 # in hours 
 
 def wait_for_start_date
   return if $start_date.to_s == '' 
@@ -56,7 +56,7 @@ end
 #watch :pin => 4 do
 after :pin => 4, :goes => :high do
   puts "Pin changed from #{last_value} to #{value}"
-  execute("raspistill -w 1920 -h 1080 -o preview.jpg");
+  execute("raspistill -q 100 -w 1920 -h 1080 -o preview.jpg");
 end
 
 def can_proceed?(remaining_space)
@@ -89,7 +89,6 @@ def thread_func
 
       # make sure the raspistill process is still running
       if `pgrep raspistill`.to_s == '' 
-        puts 'timelapse no longer running...'
         $timelapse_started = false
       end
     end
@@ -109,7 +108,7 @@ def start_timelapse
   filename = "#{$filename_template}_%04d.jpg"
   wait_time_ms = $timelapse_interval * 1000
   max_length = $max_running_length * 60 * 60 * 1000
-  command = "raspistill -t #{max_length.floor} -tl #{wait_time_ms} -w 1920 -h 1080 -n -o #{filename}"
+  command = "raspistill -q 100 -t #{max_length.floor} -tl #{wait_time_ms} -w 1920 -h 1080 -n -o #{filename}"
   puts "Running '#{command}'..."
   fork do
     puts `#{command}`
