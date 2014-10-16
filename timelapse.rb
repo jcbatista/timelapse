@@ -29,7 +29,7 @@ def wait_for_start_date
 
   if time_diff > 0
     wait_thread = Thread.new { 
-      puts "Starting timelapse at #{target_time}, waiting #{time_diff} seconds..."
+      puts "Starting timelapse at #{target_time}, waiting #{humanize time_diff} ..."
       sleep time_diff
       start_timelapse
     }
@@ -123,6 +123,15 @@ def stop_timelapse
     `sudo pkill raspistill`
 end
 
+def humanize secs
+  [[60, :seconds], [60, :minutes], [24, :hours], [1000, :days]].map{ |count, name|
+    if secs > 0
+      secs, n = secs.divmod(count)
+      "#{n.to_i} #{name}"
+    end
+  }.compact.reverse.join(' ')
+
+end
 # properly shutdown the Pi
 def shutdown
   stop_timelapse
