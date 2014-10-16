@@ -10,14 +10,15 @@ include PiPiper
 # commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
 #
 # start date as an UTC + 4 for eastern time
-$start_date = 'tomorrow 11:00am' # if set, the timelapse will start at this given date/time
+$start_date = 'tomorrow 7:00am' #nil; 'in one minute' #'tomorrow 7:00am' # if set, the timelapse will start at this given date/time
+$timelapse_interval = 3 # interval between pictures (in seconds) 
+$max_running_length = 8 #0.016 # in hours 
+
 $semaphore = Mutex.new
 $timelapse_started = false
-$timelapse_interval = 3 #1 # interval between pictures (in seconds) 
 $save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
 $save_dir = "#{$save_drive}pics"
 $filename_template = nil
-$max_running_length = 4 #0.016 # in hours 
 
 def wait_for_start_date
   return if $start_date.to_s == '' 
