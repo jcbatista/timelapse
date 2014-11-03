@@ -10,15 +10,25 @@ include PiPiper
 # commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
 #
 # start date as an UTC + 4 for eastern time
-$start_date = 'tomorrow 7:00am' #nil; 'in one minute' #'tomorrow 7:00am' # if set, the timelapse will start at this given date/time
-$timelapse_interval = 3 # interval between pictures (in seconds) 
-$max_running_length = 8 #0.016 # in hours 
-
+$start_date = nil; #'in one minute' #'tomorrow 7:00am' # if set, the timelapse will start at this given date/time
+$timelapse_interval = 2 # interval between pictures (in seconds) 
+$max_running_length = 10 #0.016 # in hours 
+$useLed = true
 $semaphore = Mutex.new
 $timelapse_started = false
 $save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
 $save_dir = "#{$save_drive}pics"
 $filename_template = nil
+$ledPin = nil
+
+def init
+  ledPinGPIO = 22
+  $ledPin = PiPiper::Pin.new(:pin => ledPinGPIO, :direction => :out)
+end
+
+def useLed?
+  return $useLed
+end
 
 def wait_for_start_date
   return if $start_date.to_s == '' 
@@ -73,6 +83,14 @@ def get_display_time(time)
   return time.localtime
 end
 
+def wait
+  wait_time = $timelapse_interval / 2 + 0.01 
+  $ledPin.on if useLed?
+  sleep wait_time
+  $ledPin.off if useLed?
+  sleep wait_time
+end
+
 def thread_func
   begin
   start_time = Time.new
@@ -86,8 +104,7 @@ def thread_func
 
       files = Dir.glob("#{$filename_template}*")
       puts "image count=#{files.length} remaining space=#{remaining_space}mb"
-      sleep $timelapse_interval + 0.01
-
+      wait 
       # make sure the raspistill process is still running
       if `pgrep raspistill`.to_s == '' 
         $timelapse_started = false
@@ -132,11 +149,14 @@ def humanize secs
   }.compact.reverse.join(' ')
 
 end
+
 # properly shutdown the Pi
 def shutdown
   stop_timelapse
   exec("sudo halt -p")
 end
+
+init
 
 after :pin => 18, :goes => :high do
   $semaphore.synchronize {
@@ -144,7 +164,6 @@ after :pin => 18, :goes => :high do
   }
 end
 
-#watch :pin => 17 do
 after :pin => 17, :goes => :high do
   puts "Pin changed from #{last_value} to #{value}"
   $semaphore.synchronize {
