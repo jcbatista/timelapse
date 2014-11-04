@@ -69,14 +69,6 @@ public
 
 private
 
-  # properly shutdown the Pi
-  def shutdown
-    $semaphore.synchronize {
-      stop_timelapse
-      exec("sudo halt -p")
-    }
-  end
-
   def useLed?
     return $useLed
   end
