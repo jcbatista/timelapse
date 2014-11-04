@@ -1,9 +1,7 @@
 # sudo gem install sys-filesystem
 require 'sys/filesystem'
 require 'thread'
-require 'pi_piper'
 require 'chronic'
-include PiPiper
 
 # quick and dirty implementation of using push buttons to preview/start a timelapse
 # on the Raspberry Pi using the Pi Camera and an LCD touch pannel 
@@ -11,7 +9,9 @@ include PiPiper
 
 class TimelapseController
 
-  def initialize
+public
+
+  def initialize( ledPin )
     # start date as an UTC + 4 for eastern time
     $start_date = nil; #'in one minute' #'tomorrow 7:00am' # if set, the timelapse will start at this given date/time
     $timelapse_interval = 2 # interval between pictures (in seconds) 
@@ -22,33 +22,9 @@ class TimelapseController
     $save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
     $save_dir = "#{$save_drive}pics"
     $filename_template = nil
-    $ledPin = nil
+    $ledPin = ledPin 
   end
 
-  
-    ledPinGPIO = 22
-    $ledPin = PiPiper::Pin.new(:pin => ledPinGPIO, :direction => :out)
-
-    after :pin => 18, :goes => :high do
-      timelapse.shutdown 
-    end
-
-    after :pin => 17, :goes => :high do
-      puts "Pin changed from #{last_value} to #{value}"
-      timelapse.perform
-   end
-
-    after :pin => 4, :goes => :high do
-      puts "Pin changed from #{last_value} to #{value}"
-      timelapse.preview
-    end
-
-    puts "Timelapse thingy started, saving files to #{$save_dir}"
-    timelapse.wait_for_start_date
-    PiPiper.wait
- 
-
-private 
   # start / stop the timelapse
   def perform
       $semaphore.synchronize {
@@ -65,8 +41,12 @@ private
     execute("raspistill -q 100 -w 1920 -h 1080 -o preview.jpg");
   end
 
-  def useLed?
-    return $useLed
+  # properly shutdown the Pi
+  def shutdown
+    $semaphore.synchronize {
+      stop_timelapse
+      exec("sudo halt -p")
+    }
   end
 
   def wait_for_start_date
@@ -85,6 +65,20 @@ private
     else 
       puts "Invalid Date/Time..."
     end
+  end
+
+private
+
+  # properly shutdown the Pi
+  def shutdown
+    $semaphore.synchronize {
+      stop_timelapse
+      exec("sudo halt -p")
+    }
+  end
+
+  def useLed?
+    return $useLed
   end
 
   def get_remaining_space
@@ -182,15 +176,4 @@ private
     }.compact.reverse.join(' ')
   end
 
-  # properly shutdown the Pi
-  def shutdown
-    $semaphore.synchronize {
-      stop_timelapse
-      exec("sudo halt -p")
-    }
-  end
-
 end # end TimelapseController
-
-timelapse = TimelapseController.new
-timelapse.start
