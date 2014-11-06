@@ -1,6 +1,10 @@
 require 'pi_piper'
 include PiPiper
 require_relative "TimelapseController.rb"
+ 
+# quick and dirty implementation of using push buttons to preview/start a timelapse
+# on the Raspberry Pi using the Pi Camera and an LCD touch pannel 
+# commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
 
 settings = {
   #if set, the timelapse will start at this given date/time

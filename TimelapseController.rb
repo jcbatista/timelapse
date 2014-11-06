@@ -3,10 +3,6 @@ require 'sys/filesystem'
 require 'thread'
 require 'chronic'
 
-# quick and dirty implementation of using push buttons to preview/start a timelapse
-# on the Raspberry Pi using the Pi Camera and an LCD touch pannel 
-# commands are issued using the Raspberry Pi's native 'raspistill' command-line tool.
-
 class TimelapseController
 
 public
