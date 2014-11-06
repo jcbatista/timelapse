@@ -10,25 +10,27 @@ require 'chronic'
 class TimelapseController
 
 public
+  
+  attr_accessor :save_dir
 
   def initialize( ledPin )
     # start date as an UTC + 4 for eastern time
-    $start_date = nil; #'in one minute' #'tomorrow 7:00am' # if set, the timelapse will start at this given date/time
-    $timelapse_interval = 2 # interval between pictures (in seconds) 
-    $max_running_length = 10 #0.016 # in hours 
-    $useLed = true
-    $semaphore = Mutex.new
-    $timelapse_started = false
-    $save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
-    $save_dir = "#{$save_drive}pics"
-    $filename_template = nil
-    $ledPin = ledPin 
+    @start_date = nil; #'in one minute' #'tomorrow 7:00am' # if set, the timelapse will start at this given date/time
+    @timelapse_interval = 2 # interval between pictures (in seconds) 
+    @max_running_length = 10 #0.016 # in hours 
+    @useLed = true
+    @semaphore = Mutex.new
+    @timelapse_started = false
+    @save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
+    @save_dir = "#{@save_drive}pics"
+    @filename_template = nil
+    @ledPin = ledPin 
   end
 
   # start / stop the timelapse
   def perform
-      $semaphore.synchronize {
-        if $timelapse_started == false 
+      @semaphore.synchronize {
+        if @timelapse_started == false 
           return if !can_proceed?(get_remaining_space)
           start_timelapse
         else
@@ -43,16 +45,16 @@ public
 
   # properly shutdown the Pi
   def shutdown
-    $semaphore.synchronize {
+    @semaphore.synchronize {
       stop_timelapse
       exec("sudo halt -p")
     }
   end
 
   def wait_for_start_date
-    return if $start_date.to_s == '' 
+    return if @start_date.to_s == '' 
 
-    target_time  = Chronic.parse($start_date)
+    target_time  = Chronic.parse(@start_date)
     current_time = Time.now
     time_diff = (target_time - current_time).to_i
 
@@ -70,11 +72,11 @@ public
 private
 
   def useLed?
-    return $useLed
+    return @useLed
   end
 
   def get_remaining_space
-    stat = Sys::Filesystem.stat("#{$save_drive}")
+    stat = Sys::Filesystem.stat("#{@save_drive}")
     mb_available = stat.block_size * stat.blocks_available / 1024 / 1024
     return mb_available
   end
@@ -103,10 +105,10 @@ private
   end
 
   def wait
-    wait_time = $timelapse_interval / 2 + 0.01 
-    $ledPin.on if useLed?
+    wait_time = @timelapse_interval / 2 + 0.01 
+    @ledPin.on if useLed?
     sleep wait_time
-    $ledPin.off if useLed?
+    @ledPin.off if useLed?
     sleep wait_time
   end
 
@@ -114,19 +116,19 @@ private
     begin
     start_time = Time.new
     puts "Starting timelapse: #{get_display_time(start_time)}"
-      while $timelapse_started
+      while @timelapse_started
         remaining_space = get_remaining_space
         if !can_proceed?(remaining_space)
           stop_timelapse
           return
         end
 
-        files = Dir.glob("#{$filename_template}*")
+        files = Dir.glob("#{@filename_template}*")
         puts "image count=#{files.length} remaining space=#{remaining_space}mb"
         wait 
         # make sure the raspistill process is still running
         if `pgrep raspistill`.to_s == '' 
-          $timelapse_started = false
+          @timelapse_started = false
         end
       end
     rescue
@@ -137,14 +139,14 @@ private
   end
 
   def start_timelapse
-    $timelapse_started = true
-    puts "starting timelapse intervall=#{$timelapse_interval} secs for a max of #{$max_running_length} hours..."    
+    @timelapse_started = true
+    puts "starting timelapse intervall=#{@timelapse_interval} secs for a max of #{@max_running_length} hours..."    
     date = Time.now.strftime("%Y%d%m")
     random = [*0..100].sample
-    $filename_template = "#{$save_dir}/f#{random}_#{date}"         
-    filename = "#{$filename_template}_%04d.jpg"
-    wait_time_ms = $timelapse_interval * 1000
-    max_length = $max_running_length * 60 * 60 * 1000
+    @filename_template = "#{@save_dir}/f#{random}_#{date}"         
+    filename = "#{@filename_template}_%04d.jpg"
+    wait_time_ms = @timelapse_interval * 1000
+    max_length = @max_running_length * 60 * 60 * 1000
     command = "raspistill -q 100 -t #{max_length.floor} -tl #{wait_time_ms} -w 1920 -h 1080 -n -o #{filename}"
     puts "Running '#{command}'..."
     fork do
@@ -155,7 +157,7 @@ private
 
   def stop_timelapse
     puts "Stopping timelapse..."  
-      $timelapse_started = false
+      @timelapse_started = false
       `sudo pkill raspistill`
   end
 

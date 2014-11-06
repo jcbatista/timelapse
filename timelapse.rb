@@ -22,7 +22,7 @@ after :pin => 4, :goes => :high do
   timelapse.preview
 end
 
-puts "Timelapse thingy started, saving files to #{$save_dir}"
+puts "Timelapse thingy started, saving files to #{timelapse.save_dir}"
 timelapse.wait_for_start_date
 
 PiPiper.wait
