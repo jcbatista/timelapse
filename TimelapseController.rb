@@ -13,17 +13,13 @@ public
   
   attr_accessor :save_dir
 
-  def initialize( ledPin )
-    # start date as an UTC + 4 for eastern time
-    @start_date = nil; #'in one minute' #'tomorrow 7:00am' # if set, the timelapse will start at this given date/time
-    @timelapse_interval = 2 # interval between pictures (in seconds) 
-    @max_running_length = 10 #0.016 # in hours 
-    @useLed = true
+  def initialize( settings, ledPin )
     @semaphore = Mutex.new
     @timelapse_started = false
     @save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
     @save_dir = "#{@save_drive}pics"
     @filename_template = nil
+    @settings = settings
     @ledPin = ledPin 
   end
 
@@ -52,9 +48,9 @@ public
   end
 
   def wait_for_start_date
-    return if @start_date.to_s == '' 
+    return if @settings[:start_date].to_s == '' 
 
-    target_time  = Chronic.parse(@start_date)
+    target_time  = Chronic.parse(@settings[:start_date])
     current_time = Time.now
     time_diff = (target_time - current_time).to_i
 
@@ -71,8 +67,8 @@ public
 
 private
 
-  def useLed?
-    return @useLed
+  def use_led?
+    return @settings[:use_led]
   end
 
   def get_remaining_space
@@ -105,10 +101,10 @@ private
   end
 
   def wait
-    wait_time = @timelapse_interval / 2 + 0.01 
-    @ledPin.on if useLed?
+    wait_time = @settings[:timelapse_interval] / 2 + 0.01 
+    @ledPin.on if use_led?
     sleep wait_time
-    @ledPin.off if useLed?
+    @ledPin.off if use_led?
     sleep wait_time
   end
 
@@ -140,13 +136,13 @@ private
 
   def start_timelapse
     @timelapse_started = true
-    puts "starting timelapse intervall=#{@timelapse_interval} secs for a max of #{@max_running_length} hours..."    
+    puts "starting timelapse intervall=#{@settings[:timelapse_interval]} secs for a max of #{@settings[:duration]} hours..."    
     date = Time.now.strftime("%Y%d%m")
     random = [*0..100].sample
     @filename_template = "#{@save_dir}/f#{random}_#{date}"         
     filename = "#{@filename_template}_%04d.jpg"
-    wait_time_ms = @timelapse_interval * 1000
-    max_length = @max_running_length * 60 * 60 * 1000
+    wait_time_ms = @settings[:timelapse_interval] * 1000
+    max_length = @settings[:duration] * 60 * 60 * 1000
     command = "raspistill -q 100 -t #{max_length.floor} -tl #{wait_time_ms} -w 1920 -h 1080 -n -o #{filename}"
     puts "Running '#{command}'..."
     fork do
