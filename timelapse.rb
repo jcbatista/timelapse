@@ -13,14 +13,16 @@ settings = {
   :timelapse_interval => 3,
   # duration in hours 
   :duration => 10,          
+  # frame storage device
+  :usb_key => "Kingston DataTraveler",
   # if true a led will indicate that the timelapse is running
   :use_led => true           
 }
 
-ledPinGPIO = 22
-ledPin = PiPiper::Pin.new(:pin => ledPinGPIO, :direction => :out)
+led_pin_gpio = 22
+led_pin = PiPiper::Pin.new(:pin => led_pin_gpio, :direction => :out)
 
-timelapse = TimelapseController.new(settings, ledPin)
+timelapse = TimelapseController.new(settings, led_pin)
 
 after :pin => 4, :goes => :high do
   puts "Pin changed from #{last_value} to #{value}"

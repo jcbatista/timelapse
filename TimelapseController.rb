@@ -12,7 +12,7 @@ public
   def initialize( settings, ledPin )
     @semaphore = Mutex.new
     @timelapse_started = false
-    @save_drive = `lsusb`.include?("Kingston DataTraveler") ?  "/mnt/usb/" : "./"
+    @save_drive = `lsusb`.include?(settings[:usb_key]) ?  "/mnt/usb/" : "./"
     @save_dir = "#{@save_drive}pics"
     @filename_template = nil
     @settings = settings
